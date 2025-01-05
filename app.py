@@ -3,7 +3,7 @@ import io
 import os
 from pydoc import text
 from flask import Flask, jsonify, render_template, request, redirect, send_file, url_for, flash, session
-from mysqlx import Session
+# from mysqlx import Session
 from openpyxl import Workbook
 import pandas as pd
 import pyodbc
