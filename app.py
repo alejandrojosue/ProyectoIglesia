@@ -22,7 +22,7 @@ app = Flask(__name__)
 app.secret_key = 'your_secret_key'
 
 #################  Configuración de la conexión a la base de datos  ###################
-SERVER = 'sql1,1433'
+SERVER = 'localhost,1433'
 DATABASE = 'master'
 USERNAME = 'sa'
 PASSWORD = 'Admin#1234'
