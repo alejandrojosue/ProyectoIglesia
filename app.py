@@ -28,7 +28,7 @@ USERNAME = 'sa'
 PASSWORD = 'Admin#1234'
 
 def establecer_conexion():
-    conn_str = f'DRIVER={{SQL Server}};SERVER={SERVER};DATABASE={DATABASE};UID={USERNAME};PWD={PASSWORD}'
+    conn_str = f'DRIVER={{/opt/microsoft/msodbcsql17/lib64/libmsodbcsql-17.0.so.1.1}};SERVER={SERVER};DATABASE={DATABASE};UID={USERNAME};PWD={PASSWORD}'
     return pyodbc.connect(conn_str)
 
 bcrypt = Bcrypt(app)
