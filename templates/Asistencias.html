@@ -124,13 +124,16 @@
                         {% endfor %}
                     </select>
                 </div>
+                
+                <!-- CAMBIO NUEVO EN SELECCION DE ANIO  -->
                 <div class="col-md-3">
                     <label for="anio">Seleccionar Año:</label>
                     <select class="form-control" id="anio" name="anio">
-                        {% for year in range(current_year, 2091) %}
+                        {% for year in range(current_year - 1, 2091) %}
                         <option value="{{ year }}" {% if year == selected_year %} selected {% endif %}>{{ year }}</option>
                         {% endfor %}
                     </select>
+                    
                 </div>
             </div>
         </form>
