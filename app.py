@@ -421,16 +421,36 @@ def export_excel():
     cursor.execute('SELECT id, nombre, colonia, telefono FROM Miembros WHERE activo = 1')
     miembros = cursor.fetchall()
     conn.close()
+
     from datetime import datetime
+
+    # Diccionario para los meses en español
+    meses_espanol = {
+        'January': 'Enero',
+        'February': 'Febrero',
+        'March': 'Marzo',
+        'April': 'Abril',
+        'May': 'Mayo',
+        'June': 'Junio',
+        'July': 'Julio',
+        'August': 'Agosto',
+        'September': 'Septiembre',
+        'October': 'Octubre',
+        'November': 'Noviembre',
+        'December': 'Diciembre'
+    }
+
+    # Obtener el nombre del mes actual en inglés y convertirlo a español
+    mes_actual = datetime.now().strftime('%B %Y')
+    mes_en_espanol = mes_actual.split()[0]  # Obtener solo el mes en inglés
+    mes_actual_espanol = meses_espanol.get(mes_en_espanol, mes_en_espanol)  # Traducir el mes
+    mes_actual = f"{mes_actual_espanol} {datetime.now().year}"
 
     # Construir una lista de diccionarios con los datos
     data = [{'ID': miembro[0], 'Nombre': miembro[1], 'Colonia': miembro[2], 'Teléfono': miembro[3]} for miembro in miembros]
 
     # Convertir los datos en un DataFrame de pandas
     df = pd.DataFrame(data)
-
-    # Obtener el nombre del mes actual y el año
-    mes_actual = datetime.now().strftime('%B %Y')
 
     # Guardar el DataFrame como archivo Excel en memoria
     output = io.BytesIO()
@@ -440,12 +460,17 @@ def export_excel():
     output.seek(0)
 
     # Nombre del archivo
-    filename = f'miembros_{datetime.now().strftime("%B_%Y")}.xlsx'
+    filename = f'miembros_{mes_actual.replace(" ", "_")}.xlsx'
 
     # Enviar el archivo Excel como respuesta para descarga
     return send_file(output, as_attachment=True, download_name=filename, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
+
+
+
 from reportlab.lib.utils import simpleSplit
+
+################### METODO EXPORTAR A PDF #################################
 
 @app.route('/export_pdf')
 @login_required
@@ -459,12 +484,17 @@ def export_pdf():
 
     from datetime import datetime
 
-    # Verificar los datos obtenidos
-    print(miembros)  # Imprimir para verificar la estructura de los datos
+    # Diccionario de meses en español
+    meses_en_espanol = {
+        1: 'Enero', 2: 'Febrero', 3: 'Marzo', 4: 'Abril', 5: 'Mayo', 6: 'Junio',
+        7: 'Julio', 8: 'Agosto', 9: 'Septiembre', 10: 'Octubre', 11: 'Noviembre', 12: 'Diciembre'
+    }
 
     # Obtener el mes y año actual
     now = datetime.now()
-    month_year = now.strftime('%B %Y')
+    mes = meses_en_espanol[now.month]  # Obtener el mes en español
+    year = now.year
+    month_year = f"{mes} {year}"  # Formato "Mes Año"
     filename = f'miembros_{month_year}.pdf'
 
     # Crear el PDF en memoria
@@ -472,63 +502,66 @@ def export_pdf():
     c = canvas.Canvas(buffer, pagesize=letter)
     width, height = letter
 
-    # Encabezado con ícono de la iglesia a la derecha
-    c.setFont('Helvetica-Bold', 16)
-    c.drawString(inch, height - inch, f"Miembros, {month_year}")
-    
-    # Insertar el ícono de la iglesia
-    church_icon_path = 'static/IglesiaPDFIcono.png'  # Ruta al archivo del ícono de la iglesia
-    c.drawInlineImage(church_icon_path, width - inch - 50, height - inch - 10, width=50, height=50)
+    # Función para dibujar encabezado y ícono
+    def dibujar_encabezado():
+        c.setFont('Helvetica-Bold', 16)
+        c.drawString(inch, height - inch, f"Miembros, {month_year}")
+        
+        # Insertar el ícono de la iglesia
+        church_icon_path = 'static/IglesiaPDFIcono.png'  # Ruta al archivo del ícono de la iglesia
+        c.drawInlineImage(church_icon_path, width - inch - 50, height - inch - 10, width=50, height=50)
 
-    # Línea divisoria al comienzo
-    c.line(inch, height - inch - 10, width - inch, height - inch - 10)
+        # Línea divisoria al comienzo
+        c.line(inch, height - inch - 10, width - inch, height - inch - 10)
 
     # Preparar datos para la tabla
     data = [['ID', 'Nombre', 'Colonia', 'Teléfono']]  # Encabezados de columnas
     data.extend([[miembro[0], miembro[1], miembro[2], miembro[3]] for miembro in miembros])
 
-    # Calcular el ancho dinámico de columnas
-    def calcular_ancho_columna(contenido, fuente, tamano_fuente, maxWidth):
-        max_ancho = 0
-        for fila in contenido:
-            for texto in fila:
-                # Dividir el texto usando simpleSplit y obtener el máximo ancho
-                texto_split = simpleSplit(str(texto), fuente, tamano_fuente, maxWidth)
-                max_ancho = max(max_ancho, max(len(t) for t in texto_split))  # Obtener el largo máximo
-        return max_ancho * 6  # Factor de escala
+    # Función para crear la tabla y agregarla a la página
+    def agregar_pagina_con_tabla(start_index):
+        # Crear y configurar la tabla
+        table = Table(data[start_index:start_index+10], colWidths=[50, 200, 150, 100])  # 10 filas por página
+        style = TableStyle([ 
+            ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+            ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+            ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ])
+        table.setStyle(style)
 
-    maxWidth = (width - 2 * inch) / 4  # Ancho máximo para dividir columnas equitativamente
-    colWidths = [calcular_ancho_columna(data, 'Helvetica', 10, maxWidth) for _ in range(4)]
+        # Calcular la posición centrada de la tabla verticalmente
+        table.wrapOn(c, width, height)
+        table_width, table_height = table.wrap(0, 0)
+        x_position = (width - table_width) / 2
+        y_position = (height - table_height) / 1.30  # Centra verticalmente
 
-    # Crear y configurar la tabla
-    table = Table(data, colWidths=colWidths)
-    style = TableStyle([ 
-        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
-        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
-        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
-        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
-        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
-        ('GRID', (0, 0), (-1, -1), 1, colors.black),
-    ])
-    table.setStyle(style)
+        # Generar la tabla y añadirla al PDF
+        table.drawOn(c, x_position, y_position)
 
-    # Calcular la posición centrada de la tabla verticalmente
-    table.wrapOn(c, width, height)
-    table_width, table_height = table.wrap(0, 0)
-    x_position = (width - table_width) / 2
-    y_position = (height - table_height) / 1.30  # Centra verticalmente
+    # Paginación: dividir los datos en varias páginas
+    num_páginas = len(data) // 10 + (1 if len(data) % 10 > 0 else 0)
+    for page_num in range(num_páginas):
+        # Dibujar encabezado y el ícono en cada página
+        dibujar_encabezado()
 
-    # Generar la tabla y añadirla al PDF
-    table.drawOn(c, x_position, y_position)
+        # Agregar tabla para cada página
+        agregar_pagina_con_tabla(page_num * 10)
 
-    # Línea divisoria al final (a 1 pulgada desde el borde inferior)
-    bottom_line_y = inch  # Ajusta esta posición según sea necesario
-    c.line(inch, bottom_line_y, width - inch, bottom_line_y)
+        # Línea divisoria al final (a 1 pulgada desde el borde inferior)
+        bottom_line_y = inch  # Ajusta esta posición según sea necesario
+        c.line(inch, bottom_line_y, width - inch, bottom_line_y)
 
-    # Pie de página con número de página
-    c.setFont('Helvetica', 10)
-    c.drawString(inch, inch / 2, "Página 1")
+        # Pie de página con número de página
+        c.setFont('Helvetica', 10)
+        c.drawString(inch, inch / 2, f"Página {page_num + 1} de {num_páginas}")
+
+        # Si no es la última página, crear nueva página
+        if page_num < num_páginas - 1:
+            c.showPage()
 
     # Guardar el PDF en el buffer
     c.save()
@@ -538,6 +571,7 @@ def export_pdf():
 
     # Enviar el archivo PDF como respuesta para descarga
     return send_file(buffer, as_attachment=True, download_name=filename, mimetype='application/pdf')
+
 
 
 ###################################

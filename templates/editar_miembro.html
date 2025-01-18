@@ -136,13 +136,15 @@
             return true;
         }
 
+        //---------------validacion campo Colonia 
+
         function validarColonia() {
             const colonia = document.getElementById('colonia').value;
             const errorDiv = document.getElementById('colonia-error');
             errorDiv.innerHTML = '';
             const regexNoEspaciosInicioFin = /^[^\s].*[^\s]$/;
             const regexNoLetrasIgualesConsecutivas = /(.)\1{3,}/;
-            const regexNoSimbolos = /[!@#$%^&*(),.?":{}|<>]/;
+            const regexNoSimbolos = /^[a-zA-Z0-9áéíóúÁÉÍÓÚñÑ,.\s]+$/;
             
 
             if (colonia.length <= 2) {
@@ -160,8 +162,8 @@
                 return false;
             }
 
-            if (regexNoSimbolos.test(colonia)) {
-                errorDiv.innerHTML = 'La colonia no puede contener símbolos.';
+            if (!regexNoSimbolos.test(colonia)) {
+                errorDiv.innerHTML = 'La colonia no puede contener símbolos (excepto comas y puntos).';
                 return false;
             }
 
